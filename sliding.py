@@ -54,9 +54,9 @@ def run_sliding_window(protocol, state, size, retrans, iterator, timeout):
             resp = protocol.recv(window[0].end_time - uptime())
         except protocol.TimeoutError:
             packet = window.pop(0)
-            packet -= 1
             if not packet.retrans:
                 raise
+            packet.retrans -= 1
             packet.end_time = uptime() + timeout
             window.append(packet)
             continue
