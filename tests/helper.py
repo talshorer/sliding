@@ -1,6 +1,5 @@
 #! usr/bin/python3
 
-import abc
 import logging
 import unittest
 import itertools
@@ -14,26 +13,33 @@ Response = collections.namedtuple("Response", ["seq"])
 
 
 class Protocol(sliding.Protocol):
-    __metaclass__ = abc.ABCMeta
 
     _logger = logging.getLogger("sliding.tests.protocol")
 
     def __init__(self):
         self.send_seq = itertools.count()
         self.recv_seq = itertools.count()
+        self.ongoing = []
         self.handled = []
 
     def send(self, fields):
+        self.ongoing.append(fields)
         req = Request(fields, next(self.send_seq))
         self._logger.info("sending {}".format(req))
         return req.seq
+
+    def should_drop(self, resp):
+        return False
 
     def recv(self, timeout):
         try:
             resp = Response(next(self.recv_seq))
         except StopIteration:
-            raise TimeoutError
-        self.handled.append(resp.seq)
+            raise TimeoutError()
+        if self.should_drop(resp):
+            self._logger.info("dropping {}".format(resp))
+            raise TimeoutError()
+        self.handled.append(self.ongoing.pop(0))
         self._logger.info("returning {}".format(resp))
         return resp
 

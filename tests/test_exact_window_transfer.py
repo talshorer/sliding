@@ -9,6 +9,6 @@ class TestExactWindowTransfer(helper.TestCase):
 
     def test_exact_window_transfer(self):
         protocol = helper.Protocol()
-        seqs = range(10)
-        sliding.run_sliding_window(protocol, None, 10, 0, iter(seqs), 4)
-        self.assertSequenceEqual(seqs, protocol.handled)
+        offs = range(10)
+        sliding.run_sliding_window(protocol, None, 10, 0, iter(offs), 4)
+        self.assertSequenceEqual(offs, protocol.handled)
