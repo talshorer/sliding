@@ -46,7 +46,7 @@ class TestCase(unittest.TestCase):
     def setUp(self):
         super(TestCase, self).setUp()
         handler = logging.FileHandler(
-            "tests/output/{}".format(type(self).__name__))
+            "tests/output/{}".format(type(self).__name__), "w")
         fmt = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
         formatter = logging.Formatter(fmt)
         handler.setFormatter(formatter)
