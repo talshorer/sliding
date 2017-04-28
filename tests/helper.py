@@ -25,7 +25,7 @@ class Protocol(sliding.Protocol):
     def send(self, fields):
         self.ongoing.append(fields)
         req = Request(fields, next(self.send_seq))
-        self._logger.info("sending {}".format(req))
+        self._logger.info("sending %s", req)
         return req.seq
 
     def should_drop(self, resp):
@@ -36,11 +36,12 @@ class Protocol(sliding.Protocol):
             resp = Response(next(self.recv_seq))
         except StopIteration:
             raise TimeoutError()
+        off = self.ongoing.pop(0)
         if self.should_drop(resp):
-            self._logger.info("dropping {}".format(resp))
+            self._logger.info("dropping %s", resp)
             raise TimeoutError()
-        self.handled.append(self.ongoing.pop(0))
-        self._logger.info("returning {}".format(resp))
+        self.handled.append(off)
+        self._logger.info("returning %s", resp)
         return resp
 
     def match(self, resp, cookie):

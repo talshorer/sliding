@@ -16,9 +16,6 @@ Packet = collections.namedtuple("Packet", ["end_time", "retrans", "fields",
 class Protocol(object):
     __metaclass__ = abc.ABCMeta
 
-    class TimeoutError(Exception):
-        pass
-
     @abc.abstractmethod
     def send(self, fields):
         "send a request according to given fields"
@@ -36,29 +33,32 @@ class NonmatchingResponse(Exception):
     pass
 
 
+def __queue(window, protocol, retrans, fields, timeout):
+    cookie = protocol.send(fields)
+    window.append(Packet(uptime() + timeout, retrans, fields, cookie))
+
 def _queue(window, protocol, retrans, iterator, timeout):
     try:
         fields = next(iterator)
     except StopIteration:
         return
-    cookie = protocol.send(fields)
-    window.append(Packet(uptime() + timeout, retrans, fields, cookie))
+    __queue(window, protocol, retrans, fields, timeout)
 
 
-def run_sliding_window(protocol, state, size, retrans, iterator, timeout):
+def run_sliding_window(protocol, state, size, retrans, iterator,
+                       timeout):
     window = []
     for _ in range(size):
         _queue(window, protocol, retrans, iterator, timeout)
     while window:
         try:
             resp = protocol.recv(window[0].end_time - uptime())
-        except protocol.TimeoutError:
+        except TimeoutError:
             packet = window.pop(0)
             if not packet.retrans:
                 raise
-            packet.retrans -= 1
-            packet.end_time = uptime() + timeout
-            window.append(packet)
+            __queue(window, protocol, packet.retrans - 1,
+                    packet.fields, timeout)
             continue
         for i, packet in enumerate(window):
             if protocol.match(resp, packet.cookie):
