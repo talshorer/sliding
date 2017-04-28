@@ -32,42 +32,38 @@ class Protocol(object):
         "decide whether a given response matches a former request by cookie"
 
 
-class SlidingWindow(object):
+class NonmatchingResponse(Exception):
+    pass
 
-    class NonmatchingResponse(Exception):
-        pass
 
-    def __init__(self, size, retrans):
-        self.size = size
-        self.retrans = retrans
+def _queue(window, protocol, retrans, iterator, timeout):
+    try:
+        fields = next(iterator)
+    except StopIteration:
+        return
+    cookie = protocol.send(fields)
+    window.append(Packet(uptime() + timeout, retrans, fields, cookie))
 
-    def _queue(self, window, protocol, iterator, timeout):
+
+def run_sliding_window(protocol, state, size, retrans, iterator, timeout):
+    window = []
+    for _ in range(size):
+        _queue(window, protocol, retrans, iterator, timeout)
+    while window:
         try:
-            fields = next(iterator)
-        except StopIteration:
-            return
-        cookie = protocol.send(fields)
-        window.append(Packet(uptime() + timeout, self.retrans, fields, cookie))
-
-    def run(self, protocol, state, iterator, timeout):
-        window = []
-        for _ in range(self.size):
-            self._queue(window, protocol, iterator, timeout)
-        while window:
-            try:
-                resp = protocol.recv(window[0].end_time - uptime())
-            except protocol.TimeoutError:
-                packet = window.pop(0)
-                packet -= 1
-                if not packet.retrans:
-                    raise
-                packet.end_time = uptime() + timeout
-                window.append(packet)
-                continue
-            for i, packet in enumerate(window):
-                if protocol.match(resp, packet.cookie):
-                    window.pop(i)
-                    break
-            else:  # no match
-                raise self.NonmatchingResponse(resp)
-            self._queue(window, protocol, iterator, timeout)
+            resp = protocol.recv(window[0].end_time - uptime())
+        except protocol.TimeoutError:
+            packet = window.pop(0)
+            packet -= 1
+            if not packet.retrans:
+                raise
+            packet.end_time = uptime() + timeout
+            window.append(packet)
+            continue
+        for i, packet in enumerate(window):
+            if protocol.match(resp, packet.cookie):
+                window.pop(i)
+                break
+        else:  # no match
+            raise NonmatchingResponse(resp)
+        _queue(window, protocol, retrans, iterator, timeout)
