@@ -36,11 +36,11 @@ class Protocol(sliding.Protocol):
             resp = Response(next(self.recv_seq))
         except StopIteration:
             raise TimeoutError()
-        off = self.ongoing.pop(0)
         if self.should_drop(resp):
             self._logger.info("dropping %s", resp)
+            self.ongoing.pop(0)
             raise TimeoutError()
-        self.handled.append(off)
+        self.handled.append(self.ongoing.pop(0))
         self._logger.info("returning %s", resp)
         return resp
 

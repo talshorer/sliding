@@ -37,6 +37,7 @@ def __queue(window, protocol, retrans, fields, timeout):
     cookie = protocol.send(fields)
     window.append(Packet(uptime() + timeout, retrans, fields, cookie))
 
+
 def _queue(window, protocol, retrans, iterator, timeout):
     try:
         fields = next(iterator)
