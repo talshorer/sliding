@@ -53,7 +53,7 @@ def run_sliding_window(protocol, state, size, retrans, iterator,
         _queue(window, protocol, retrans, iterator, timeout)
     while window:
         try:
-            resp = protocol.recv(window[0].end_time - uptime())
+            resp = protocol.recv(state, window[0].end_time - uptime())
         except TimeoutError:
             packet = window.pop(0)
             if not packet.retrans:

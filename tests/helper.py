@@ -31,7 +31,7 @@ class Protocol(sliding.Protocol):
     def should_drop(self, resp):
         return False
 
-    def recv(self, timeout):
+    def recv(self, state, timeout):
         try:
             resp = Response(next(self.recv_seq))
         except StopIteration:
