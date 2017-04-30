@@ -22,7 +22,7 @@ class Protocol(sliding.Protocol):
         self.ongoing = []
         self.handled = []
 
-    def send(self, fields):
+    def send(self, state, fields):
         self.ongoing.append(fields)
         req = Request(fields, next(self.send_seq))
         self._logger.info("sending %s", req)
@@ -42,10 +42,7 @@ class Protocol(sliding.Protocol):
             raise TimeoutError()
         self.handled.append(self.ongoing.pop(0))
         self._logger.info("returning %s", resp)
-        return resp
-
-    def match(self, resp, cookie):
-        return resp.seq == cookie
+        return resp, resp.seq
 
 
 class TestCase(unittest.TestCase):

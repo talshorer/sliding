@@ -9,62 +9,60 @@ def uptime():
         return float(f.read().split()[0])
 
 
-Packet = collections.namedtuple("Packet", ["end_time", "retrans", "fields",
-                                           "cookie"])
+Packet = collections.namedtuple("Packet", ["end_time", "retrans", "fields"])
 
 
 class Protocol(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def send(self, fields):
-        "send a request according to given fields"
+    def send(self, state, fields):
+        "send a request according to given fields and returns a cookie"
 
     @abc.abstractmethod
     def recv(self, state, timeout):
-        "returns a response after handling it or raises TimeoutError"
-
-    @abc.abstractmethod
-    def match(self, resp, cookie):
-        "decide whether a given response matches a former request by cookie"
+        """
+        receives and handles a response or raises TimeoutError
+        returns response, cookie (matching previous request's cookie)
+        """
 
 
 class NonmatchingResponse(Exception):
     pass
 
 
-def __queue(window, protocol, retrans, fields, timeout):
-    cookie = protocol.send(fields)
-    window.append(Packet(uptime() + timeout, retrans, fields, cookie))
+def __queue(window, protocol, state, retrans, fields, timeout):
+    cookie = protocol.send(state, fields)
+    window[cookie] = Packet(uptime() + timeout, retrans, fields)
 
 
-def _queue(window, protocol, retrans, iterator, timeout):
+def _queue(window, protocol, state, retrans, iterator, timeout):
     try:
         fields = next(iterator)
     except StopIteration:
         return
-    __queue(window, protocol, retrans, fields, timeout)
+    __queue(window, protocol, state, retrans, fields, timeout)
 
 
 def run_sliding_window(protocol, state, size, retrans, iterator,
                        timeout):
-    window = []
+    window = collections.OrderedDict()
     for _ in range(size):
-        _queue(window, protocol, retrans, iterator, timeout)
+        _queue(window, protocol, state, retrans, iterator, timeout)
     while window:
         try:
-            resp = protocol.recv(state, window[0].end_time - uptime())
+            resp, cookie = protocol.recv(state,
+                                         next(iter(window.values())).end_time -
+                                         uptime())
         except TimeoutError:
-            packet = window.pop(0)
+            packet = window.popitem(False)[1]
             if not packet.retrans:
                 raise
-            __queue(window, protocol, packet.retrans - 1,
+            __queue(window, protocol, state, packet.retrans - 1,
                     packet.fields, timeout)
             continue
-        for i, packet in enumerate(window):
-            if protocol.match(resp, packet.cookie):
-                window.pop(i)
-                break
-        else:  # no match
+        try:
+            window.pop(cookie)
+        except KeyError:
             raise NonmatchingResponse(resp)
-        _queue(window, protocol, retrans, iterator, timeout)
+        _queue(window, protocol, state, retrans, iterator, timeout)
