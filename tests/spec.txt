@@ -3,3 +3,4 @@ window of 10, total of 7
 window of 10, total of 10
 window of 10, total of 20, 3rd packet required a retransmission
 window of 10, total of 20, 3rd packet lost (retransmissions lost too)
+window of 10, total of 20, 3rd packet returns a previously-unseen cookie
