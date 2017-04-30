@@ -32,10 +32,7 @@ class Protocol(sliding.Protocol):
         return False
 
     def recv(self, state, timeout):
-        try:
-            resp = Response(next(self.recv_seq))
-        except StopIteration:
-            raise TimeoutError()
+        resp = Response(next(self.recv_seq))
         if self.should_drop(resp):
             self._logger.info("dropping %s", resp)
             self.ongoing.pop(0)
@@ -49,10 +46,15 @@ class TestCase(unittest.TestCase):
 
     def setUp(self):
         super(TestCase, self).setUp()
-        handler = logging.FileHandler(
+        self._handler = logging.FileHandler(
             "tests/output/{}".format(type(self).__name__), "w")
         fmt = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
         formatter = logging.Formatter(fmt)
-        handler.setFormatter(formatter)
-        logging.root.addHandler(handler)
+        self._handler.setFormatter(formatter)
+        logging.root.addHandler(self._handler)
         logging.root.setLevel(logging.DEBUG)
+
+    def tearDown(self):
+        super(TestCase, self).tearDown()
+        self._handler.close()
+        logging.root.removeHandler(self._handler)
