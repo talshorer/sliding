@@ -17,13 +17,13 @@ class Protocol(object):
 
     @abc.abstractmethod
     def send(self, state, fields):
-        "sends a request according to given fields and returns a cookie"
+        """Sends a request according to given fields and returns a cookie."""
 
     @abc.abstractmethod
     def recv(self, state, timeout):
         """
-        receives and handles a response or raises TimeoutError
-        returns a cookie (matching previous request's cookie)
+        Rreceives and handles a response or raises TimeoutError.
+        Returns a cookie (matching previous request's cookie).
         """
 
 
@@ -46,6 +46,21 @@ def _queue(window, protocol, state, retrans, iterator, timeout):
 
 def run_sliding_window(protocol, state, size, retrans, iterator,
                        timeout):
+    """
+    Runs a sliding window, calling back protocol when necessary.
+    Arguments:
+    protocol -- stateless object that exposes the Protocol class interface.
+    state -- a state object that's passed to protocol's methods.
+        this is useful for cases where the same protocol object is used
+        concurrently with multiple state objects.
+    size -- size of the sliding window, in packets.
+    retrans -- max retransmissions for each packet before raising TimeoutError.
+    iterator -- an iterable object from which to extract fields for packets.
+        each call to protocol.send will provide one object from this iterator,
+        which can be of any arbitrary type.
+    timeout -- timeout for a single packet for a single transmission.
+        The actual timeout for a packet is therefore (timeout * retrans).
+    """
     window = collections.OrderedDict()
     for _ in range(size):
         _queue(window, protocol, state, retrans, iterator, timeout)
