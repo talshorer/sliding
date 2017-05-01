@@ -10,11 +10,11 @@ class TestNonmatchingResponse(helper.TestCase):
     class Protocol(helper.Protocol):
 
         def recv(self, state, timeout):
-            resp, cookie = super(TestNonmatchingResponse.Protocol, self).recv(
+            cookie = super(TestNonmatchingResponse.Protocol, self).recv(
                 state, timeout)
             if cookie == 3:
                 cookie = -1
-            return resp, cookie
+            return cookie
 
     def test_nonmatching_response(self):
         protocol = self.Protocol()

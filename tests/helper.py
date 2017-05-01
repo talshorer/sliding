@@ -39,7 +39,7 @@ class Protocol(sliding.Protocol):
             raise TimeoutError()
         self.handled.append(self.ongoing.pop(0))
         self._logger.info("returning %s", resp)
-        return resp, resp.seq
+        return resp.seq
 
 
 class TestCase(unittest.TestCase):

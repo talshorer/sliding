@@ -17,13 +17,13 @@ class Protocol(object):
 
     @abc.abstractmethod
     def send(self, state, fields):
-        "send a request according to given fields and returns a cookie"
+        "sends a request according to given fields and returns a cookie"
 
     @abc.abstractmethod
     def recv(self, state, timeout):
         """
         receives and handles a response or raises TimeoutError
-        returns response, cookie (matching previous request's cookie)
+        returns a cookie (matching previous request's cookie)
         """
 
 
@@ -51,18 +51,17 @@ def run_sliding_window(protocol, state, size, retrans, iterator,
         _queue(window, protocol, state, retrans, iterator, timeout)
     while window:
         try:
-            resp, cookie = protocol.recv(state,
-                                         next(iter(window.values())).end_time -
-                                         uptime())
+            first_cookie, packet = next(iter(window.items()))
+            new_cookie = protocol.recv(state, packet.end_time - uptime())
         except TimeoutError:
-            packet = window.popitem(False)[1]
+            window.pop(first_cookie)
             if not packet.retrans:
                 raise
             __queue(window, protocol, state, packet.retrans - 1,
                     packet.fields, timeout)
             continue
         try:
-            window.pop(cookie)
+            window.pop(new_cookie)
         except KeyError:
-            raise NonmatchingResponse(resp)
+            raise NonmatchingResponse(new_cookie)
         _queue(window, protocol, state, retrans, iterator, timeout)
