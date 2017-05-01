@@ -1,3 +1,4 @@
+
 #! /usr/bin/python3
 
 import abc
@@ -51,8 +52,6 @@ def run_sliding_window(protocol, state, size, retrans, iterator,
     Arguments:
     protocol -- stateless object that exposes the Protocol class interface.
     state -- a state object that's passed to protocol's methods.
-        this is useful for cases where the same protocol object is used
-        concurrently with multiple state objects.
     size -- size of the sliding window, in packets.
     retrans -- max retransmissions for each packet before raising TimeoutError.
     iterator -- an iterable object from which to extract fields for packets.
